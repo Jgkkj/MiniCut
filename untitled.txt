@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniCut Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --accent: #00e5ff; --bg: #000000; --card: #111218; --text-muted: #7e8392; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: #fff; font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        .app { width: 100%; max-width: 450px; height: 100%; display: flex; flex-direction: column; position: relative; background: #000; }
+        
+        /* Top Header compacta */
+        .header { background: #090a0f; padding: 8px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #161822; z-index: 10; }
+        .header h2 { font-size: 14px; font-weight: 600; color: #fff; letter-spacing: 0.5px; }
+        .file-status { font-size: 11px; color: var(--text-muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Preview Box expandido - Maior destaque ao conteúdo */
+        .preview-box { flex: 1; min-height: 200px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; background: #000; }
+        .video-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .empty-text { color: #4e5361; font-size: 13px; text-align: center; position: absolute; z-index: 2; pointer-events: none; }
+        
+        /* Camadas interativas */
+        .image-overlay { position: absolute; max-width: 100px; max-height: 100px; display: none; z-index: 5; cursor: move; object-fit: contain; left: 35%; top: 35%; touch-action: none; }
+        .text-overlay { position: absolute; color: #fff; font-size: 22px; font-weight: bold; text-shadow: 2px 2px 4px #000; cursor: move; display: none; z-index: 6; text-align: center; padding: 6px; left: 30%; top: 45%; user-select: none; touch-action: none; white-space: nowrap; }
+
+        /* Área de Trabalho Inferior (Controles Compactados e Colados) */
+        .bottom-workspace { background: #090a0f; border-top: 1px solid #161822; padding: 8px 12px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+        /* Info e Tempo Compacto */
+        .time-counter { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+        .cut-status-text { font-size: 11px; color: var(--accent); text-align: center; font-weight: 500; }
+
+        /* Linha de Tempo Avançada com Simulação de Miniaturas de Frames */
+        .timeline-wrapper { position: relative; width: 100%; background: #12131a; border-radius: 6px; padding: 3px; border: 1px solid #1f222f; overflow: hidden; }
+        .timeline-frames-bg { display: flex; width: 100%; height: 32px; position: absolute; left: 0; top: 3px; padding: 0 4px; opacity: 0.25; pointer-events: none; justify-content: space-between; gap: 2px; }
+        .frame-thumb { flex: 1; background: linear-gradient(45deg, #222533, #383d54); border-radius: 2px; height: 100%; }
+        .timeline-bar { position: relative; width: 100%; accent-color: var(--accent); cursor: pointer; height: 32px; opacity: 0.85; z-index: 3; background: transparent; -webkit-appearance: none; appearance: none; }
+        .timeline-bar::-webkit-slider-runnable-track { background: transparent; }
+        .timeline-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 4px; height: 32px; background: #ffffff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,0.5); cursor: ew-resize; }
+
+        /* Mini Player Bar */
+        .player-bar { display: flex; justify-content: center; gap: 20px; align-items: center; margin: -2px 0; }
+        .player-bar i { font-size: 16px; cursor: pointer; color: #a0a5b5; transition: color 0.2s; }
+        .player-bar i:hover { color: #fff; }
+
+        /* Painéis Dinâmicos de Ferramentas (Sempre discretos, sem cores fortes extras) */
+        .tool-panel { display: none; background: #12131a; border-radius: 8px; padding: 10px; border: 1px solid #1f222f; flex-direction: column; gap: 8px; max-height: 140px; overflow-y: auto; }
+        .tool-panel.active-panel { display: flex; }
+        
+        .panel-title { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 2px; display: flex; justify-content: space-between; }
+        
+        /* Botões de Ação Comuns (Discretos e Sóbrios) */
+        .grid-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .grid-actions-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        
+        button.action-btn { background: #191b26; border: 1px solid #282b3d; color: #d1d5db; padding: 8px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        button.action-btn:hover { border-color: #4e5361; color: #fff; }
+        button.action-btn.active { background: rgba(0, 229, 255, 0.1); border-color: var(--accent); color: var(--accent); }
+        button.danger-btn { background: #261414; border: 1px solid #4d1e1e; color: #fca5a5; }
+        button.danger-btn:hover { background: #381a1a; border-color: #732626; }
+
+        /* Sliders e Inputs de Ajuste Sóbrios */
+        .slider-row { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: #9ca3af; }
+        .slider-row input[type="range"] { accent-color: var(--accent); width: 100%; height: 16px; cursor: pointer; }
+        .text-input-wrapper { display: flex; gap: 6px; }
+        .text-input-wrapper input { flex: 1; background: #191b26; border: 1px solid #282b3d; color: #fff; padding: 7px; border-radius: 6px; font-size: 12px; }
+
+        /* BARRA INFERIOR DE ABAS / FERRAMENTAS PRINCIPAIS (Ciano nos Ícones Ativos) */
+        .bottom-nav { display: grid; grid-template-columns: repeat(5, 1fr); background: #090a0f; border-top: 1px solid #161822; padding: 6px 0; z-index: 10; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 10px; font-weight: 500; transition: color 0.2s; }
+        .nav-item i { font-size: 16px; }
+        .nav-item:hover { color: #fff; }
+        .nav-item.active-nav { color: var(--accent); font-weight: 600; }
+
+        /* Botão de Importação Inteligente Oculto */
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <!-- Top Header Compacta -->
+        <div class="header">
+            <h2>MiniCut Studio</h2>
+            <div id="file-title" class="file-status">Nenhum vídeo carregado</div>
+        </div>
+
+        <!-- Preview Box Expandido (Ocupa a maior área disponível da tela) -->
+        <div class="preview-box" id="preview-box">
+            <div id="placeholder" class="empty-text">
+                <i class="fa-solid fa-play" style="font-size: 24px; margin-bottom: 6px; color: #282b3d;"></i><br>
+                Toque em "Cortar" abaixo para começar
+            </div>
+            
+            <div class="video-container" id="video-container">
+                <video id="editor-video" loop playsinline></video>
+            </div>
+            
+            <img id="img-layer" class="image-overlay" src="">
+            <div id="text-layer" class="text-overlay">Texto Base</div>
+        </div>
+
+        <!-- Área de Trabalho de Controles e Linha de Tempo Integrada -->
+        <div class="bottom-workspace">
+            
+            <!-- Marcadores de Tempo Tabulares -->
+            <div class="time-counter">
+                <span id="current-time-lbl">00:00</span>
+                <span id="cut-info" class="cut-status-text">Vídeo Completo</span>
+                <span id="total-time-lbl">00:00</span>
+            </div>
+
+            <!-- Linha de Tempo Avançada com Miniaturas de Frames no Fundo -->
+            <div class="timeline-wrapper">
+                <div class="timeline-frames-bg">
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                    <div class="frame-thumb"></div>
+                </div>
+                <input type="range" id="timeline-scrub" class="timeline-bar" min="0" value="0" step="0.05" oninput="scrubVideo()">
+            </div>
+
+            <!-- Mini Player Center -->
+            <div class="player-bar">
+                <i class="fa-solid fa-rotate-left" onclick="restartVid()" title="Reiniciar"></i>
+                <i class="fa-solid fa-play" id="play-btn" onclick="playToggle()" style="font-size: 20px; color: #fff;"></i>
+            </div>
+
+            <!-- PAINÉIS DINÂMICOS (Sub-ferramentas discretas ativadas pela barra inferior) -->
+            
+            <!-- Painel 1: Cortar -->
+            <div class="tool-panel active-panel" id="panel-corte">
+                <div class="panel-title">Ferramentas de Divisão e Corte</div>
+                <div class="grid-actions">
+                    <button class="action-btn" onclick="splitVideo('before')" style="color: #ffb74d;"><i class="fa-solid fa-scissors"></i> Apagar Antes</button>
+                    <button class="action-btn" onclick="splitVideo('after')" style="color: #ff8a65;">Apagar Depois <i class="fa-solid fa-scissors"></i></button>
+                </div>
+                <div class="grid-actions" style="margin-top: 4px;">
+                    <button class="action-btn" onclick="markSegment('start')"><i class="fa-solid fa-circle-right"></i> Marcar Início</button>
+                    <button class="action-btn" onclick="markSegment('end')">Marcar Fim <i class="fa-solid fa-circle-left"></i></button>
+                </div>
+                <button class="action-btn danger-btn" onclick="deleteSegment()" style="margin-top: 4px; padding: 6px;"><i class="fa-solid fa-trash-can"></i> Remover Segmento Selecionado</button>
+            </div>
+
+            <!-- Painel 2: Texto -->
+            <div class="tool-panel" id="panel-texto">
+                <div class="panel-title">Adicionar Camada de Texto</div>
+                <div class="text-input-wrapper">
+                    <input type="text" id="text-value" placeholder="Insira seu texto por cima..." oninput="updateTextLayer()">
+                    <button class="action-btn" onclick="toggleTextBox()" id="add-text-trigger">Ativar</button>
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 4px;">Arraste o texto diretamente na tela de preview para reposicionar.</div>
+            </div>
+
+            <!-- Painel 3: Áudio & Camadas -->
+            <div class="tool-panel" id="panel-audio">
+                <div class="panel-title">Volume, Velocidade e Mídia</div>
+                <div class="grid-actions" style="grid-template-columns: 1.2fr 1fr;">
+                    <div class="slider-row">
+                        <span>Volume Central</span>
+                        <input type="range" id="video-volume" min="0" max="100" value="100" oninput="updateVolume()">
+                    </div>
+                    <label for="image-file" class="action-btn" style="text-align:center; padding: 10px 4px 0 4px; font-size:10px;"><i class="fa-solid fa-image"></i> Inserir Imagem</label>
+                </div>
+                <div class="slider-row" id="layer-control" style="display:none;">
+                    <span>Tamanho da Imagem Escrava</span>
+                    <input type="range" id="layer-size" min="30" max="300" value="100" oninput="updateLayerSize()">
+                </div>
+                <div class="grid-actions-3" style="margin-top: 2px;">
+                    <button id="speed-slow" class="action-btn" onclick="setSpeed(0.5)">0.5x</button>
+                    <button id="speed-normal" class="action-btn active" onclick="setSpeed(1.0)">1.0x (Regular)</button>
+                    <button id="speed-fast" class="action-btn" onclick="setSpeed(1.5)">1.5x</button>
+                </div>
+            </div>
+
+            <!-- Painel 4: Filtros -->
+            <div class="tool-panel" id="panel-filtros">
+                <div class="panel-title">Ajustes Finos e Filtros Cinematográficos</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px;">
+                    <div class="slider-row"><span>Brilho</span><input type="range" id="fx-bright" min="0" max="200" value="100" oninput="applyAllFX()"></div>
+                    <div class="slider-row"><span>Contraste</span><input type="range" id="fx-contrast" min="0" max="200" value="100" oninput="applyAllFX()"></div>
+                    <div class="slider-row"><span>Saturação</span><input type="range" id="fx-saturate" min="0" max="200" value="100" oninput="applyAllFX()"></div>
+                    <div class="slider-row"><span>Desfoque</span><input type="range" id="fx-blur" min="0" max="10" value="0" oninput="applyAllFX()"></div>
+                </div>
+                <div class="grid-actions-3" style="margin-top: 4px;">
+                    <button id="preset-pb" class="action-btn" onclick="togglePreset('pb')">P&B</button>
+                    <button id="preset-sepia" class="action-btn" onclick="togglePreset('sepia')">Sépia</button>
+                    <button id="preset-invert" class="action-btn" onclick="togglePreset('invert')">Inverter</button>
+                </div>
+            </div>
+
+            <!-- Painel 5: Exportar -->
+            <div class="tool-panel" id="panel-exportar">
+                <div class="panel-title">Origem de Vídeo e Configuração</div>
+                <label for="video-file" class="action-btn" style="text-align: center; background: #1a2333; border-color: #2b3b57; padding: 10px 0; font-size: 12px; color: #fff;">
+                    <i class="fa-solid fa-file-video" style="color: var(--accent);"></i> CARREGAR NOVO VÍDEO BASE
+                </label>
+                <button class="action-btn danger-btn" onclick="resetEditor()" style="margin-top: 4px;"><i class="fa-solid fa-arrow-rotate-left"></i> Resetar Configurações Atuais</button>
+            </div>
+
+        </div>
+
+        <!-- BARRA INFERIOR DE FERRAMENTAS / ABAS (Estilo Aplicativo Mobile Nativo) -->
+        <div class="bottom-nav">
+            <button class="nav-item active-nav" onclick="switchTab('corte', this)"><i class="fa-solid fa-scissors"></i>Cortar</button>
+            <button class="nav-item" onclick="switchTab('texto', this)"><i class="fa-solid fa-t"></i>Texto</button>
+            <button class="nav-item" onclick="switchTab('audio', this)"><i class="fa-solid fa-sliders"></i>Ajustes</button>
+            <button class="nav-item" onclick="switchTab('filtros', this)"><i class="fa-solid fa-wand-magic-sparkles"></i>Filtros</button>
+            <button class="nav-item" onclick="switchTab('exportar', this)"><i class="fa-solid fa-cloud-arrow-up"></i>Mídia</button>
+        </div>
+
+        <!-- Inputs Invisíveis de Arquivos -->
+        <input type="file" id="video-file" accept="video/*">
+        <input type="file" id="image-file" accept="image/*">
+    </div>
+
+    <script>
+        const video = document.getElementById('editor-video');
+        const videoContainer = document.getElementById('video-container');
+        const fileInput = document.getElementById('video-file');
+        const imageInput = document.getElementById('image-file');
+        const placeholder = document.getElementById('placeholder');
+        const playBtn = document.getElementById('play-btn');
+        const fileTitle = document.getElementById('file-title');
+        const textLayer = document.getElementById('text-layer');
+        const imgLayer = document.getElementById('img-layer');
+        const cutInfo = document.getElementById('cut-info');
+        const layerControl = document.getElementById('layer-control');
+        const timelineScrub = document.getElementById('timeline-scrub');
+        const currentTimeLbl = document.getElementById('current-time-lbl');
+        const totalTimeLbl = document.getElementById('total-time-lbl');
+
+        let startTime = 0;
+        let endTime = 0;
+        let deleteStart = -1;
+        let deleteEnd = -1;
+        let activePresets = { pb: false, sepia: false, invert: false };
+
+        // Alternância de Abas da Barra Inferior
+        function switchTab(panelId, btnElement) {
+            document.querySelectorAll('.tool-panel').forEach(panel => panel.classList.remove('active-panel'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active-nav'));
+            
+            document.getElementById(`panel-${panelId}`).classList.add('active-panel');
+            btnElement.classList.add('active-nav');
+        }
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                video.src = URL.createObjectURL(file);
+                placeholder.style.display = 'none';
+                fileTitle.innerText = file.name;
+                
+                video.onloadedmetadata = () => {
+                    timelineScrub.max = video.duration;
+                    startTime = 0;
+                    endTime = video.duration;
+                    deleteStart = -1;
+                    deleteEnd = -1;
+                    totalTimeLbl.innerText = formatTime(video.duration);
+                    video.play();
+                    playBtn.className = "fa-solid fa-pause";
+                };
+            }
+        };
+
+        imageInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                imgLayer.src = URL.createObjectURL(file);
+                imgLayer.style.display = 'block';
+                layerControl.style.display = 'flex';
+                makeDraggable(imgLayer);
+            }
+        };
+
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60).toString().padStart(2, '0');
+            const s = Math.floor(secs % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function scrubVideo() {
+            if (!video.src) return;
+            video.currentTime = parseFloat(timelineScrub.value);
+        }
+
+        function splitVideo(type) {
+            if (!video.src) return;
+            const currentPosition = video.currentTime;
+            
+            if (type === 'before') {
+                startTime = currentPosition;
+            } else if (type === 'after') {
+                endTime = currentPosition;
+            }
+            
+            updateDisplayInfo();
+            video.currentTime = startTime;
+        }
+
+        function markSegment(type) {
+            if (!video.src) return;
+            if (type === 'start') {
+                deleteStart = video.currentTime;
+            } else if (type === 'end') {
+                deleteEnd = video.currentTime;
+            }
+            updateDisplayInfo();
+        }
+
+        function deleteSegment() {
+            if (deleteStart !== -1 && deleteEnd !== -1 && deleteEnd > deleteStart) {
+                cutInfo.innerText = `Corte do meio ativo`;
+                video.currentTime = startTime;
+            } else {
+                alert("Marque o início e o fim do segmento antes de remover.");
+            }
+        }
+
+        function updateDisplayInfo() {
+            if (deleteStart !== -1 && deleteEnd !== -1) {
+                cutInfo.innerText = `Removendo meio`;
+         
