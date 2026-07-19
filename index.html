@@ -21,7 +21,7 @@
         .preview-box { background: #000; border-radius: 16px; height: 260px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; border: 1px solid #1f222b; }
         
         .video-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s; }
-        video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        video { max-width: 100%; max-height: 100%; object-fit: contain; background: #000; }
         
         .empty-text { color: #555; font-size: 14px; text-align: center; position: absolute; z-index: 2; }
         
@@ -70,7 +70,7 @@
             </div>
             
             <div class="video-container" id="video-container">
-                <video id="editor-video" playsinline muted crossorigin="anonymous"></video>
+                <video id="editor-video" playsinline webkit-playsinline></video>
             </div>
             
             <img id="img-layer" class="image-overlay" src="">
@@ -114,7 +114,7 @@
 
             <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
                 <label><i class="fa-solid fa-volume-high"></i> Controle de Volume</label>
-                <input type="range" id="video-volume" min="0" max="100" value="0" oninput="updateVolume()">
+                <input type="range" id="video-volume" min="0" max="100" value="100" oninput="updateVolume()">
                 
                 <label style="margin-top: 8px;"><i class="fa-solid fa-gauge-high"></i> Velocidade</label>
                 <div class="grid-buttons" style="margin-top: 4px;">
@@ -180,17 +180,21 @@
         let recordedChunks = [];
         let mediaRecorder;
         let activePresets = { pb: false, sepia: false, invert: false };
+        let currentVideoURL = null;
+        let currentImageURL = null;
 
-        // Carregamento de mídia totalmente adaptado para segurança de navegadores mobile
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                video.pause();
-                video.removeAttribute('src');
-                video.load();
+                if (currentVideoURL) {
+                    URL.revokeObjectURL(currentVideoURL);
+                }
 
-                const fileURL = URL.createObjectURL(file);
-                video.src = fileURL;
+                video.pause();
+                currentVideoURL = URL.createObjectURL(file);
+                video.src = currentVideoURL;
+                video.load();
+                
                 placeholder.style.display = 'none';
                 fileTitle.innerText = file.name.substring(0, 15) + '...';
                 
@@ -200,14 +204,16 @@
                     endTime = video.duration;
                     totalTimeLbl.innerText = formatTime(video.duration);
                     
+                    // Evita tela preta inicial carregando o primeiro frame de forma visível
+                    video.currentTime = 0.01; 
+                    
                     setTimeout(() => {
                         video.play().then(() => {
                             playBtn.className = "fa-solid fa-pause";
-                        }).catch(err => {
-                            console.log("Chrome bloqueou autoplay audível. Iniciando mudo.");
+                        }).catch(() => {
                             playBtn.className = "fa-solid fa-play";
                         });
-                    }, 100);
+                    }, 150);
                 };
             }
         };
@@ -215,7 +221,11 @@
         imageInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                imgLayer.src = URL.createObjectURL(file);
+                if (currentImageURL) {
+                    URL.revokeObjectURL(currentImageURL);
+                }
+                currentImageURL = URL.createObjectURL(file);
+                imgLayer.src = currentImageURL;
                 imgLayer.style.display = 'block';
                 layerControl.style.display = 'flex';
                 makeDraggable(imgLayer);
@@ -271,8 +281,6 @@
         }
 
         function updateVolume() {
-            // Se o usuário mexer no volume, desativa o mute forçado do navegador
-            if(video.muted) video.muted = false;
             video.volume = document.getElementById('video-volume').value / 100;
         }
 
@@ -306,7 +314,6 @@
         function playToggle() {
             if (!video.src) return;
             if (video.paused) {
-                if(video.muted && document.getElementById('video-volume').value > 0) video.muted = false;
                 video.play().then(() => {
                     playBtn.className = "fa-solid fa-pause";
                 }).catch(() => {});
@@ -370,6 +377,4 @@
             }
 
             function dragEnd() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-               
+                docum
