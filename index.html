@@ -186,34 +186,37 @@
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+
                 if (currentVideoURL) {
                     URL.revokeObjectURL(currentVideoURL);
                 }
 
-                video.pause();
                 currentVideoURL = URL.createObjectURL(file);
+                
+                video.preload = "auto";
                 video.src = currentVideoURL;
+                
+                placeholder.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Carregando mídia...';
                 video.load();
                 
-                placeholder.style.display = 'none';
-                fileTitle.innerText = file.name.substring(0, 15) + '...';
-                
-                video.onloadedmetadata = () => {
+                video.onloadeddata = () => {
+                    placeholder.style.display = 'none';
+                    fileTitle.innerText = file.name.substring(0, 15) + '...';
+                    
                     timelineScrub.max = video.duration;
                     startTime = 0;
                     endTime = video.duration;
                     totalTimeLbl.innerText = formatTime(video.duration);
                     
-                    // Evita tela preta inicial carregando o primeiro frame de forma visível
-                    video.currentTime = 0.01; 
-                    
-                    setTimeout(() => {
-                        video.play().then(() => {
-                            playBtn.className = "fa-solid fa-pause";
-                        }).catch(() => {
-                            playBtn.className = "fa-solid fa-play";
-                        });
-                    }, 150);
+                    video.currentTime = 0.05;
+                };
+
+                video.onerror = () => {
+                    alert("Erro ao carregar: O formato ou codec deste vídeo não é suportado pelo Chrome mobile. Tente um formato .mp4 padrão mais leve.");
+                    placeholder.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Formato incompatível';
                 };
             }
         };
@@ -372,9 +375,4 @@
                 pos2 = pos4 - clientY;
                 pos3 = clientX;
                 pos4 = clientY;
-                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
-            }
-
-            function dragEnd() {
-                docum
+                elmnt.style.top = (elmnt.offsetT
