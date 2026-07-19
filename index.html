@@ -70,7 +70,7 @@
             </div>
             
             <div class="video-container" id="video-container">
-                <video id="editor-video" loop playsinline></video>
+                <video id="editor-video" playsinline muted crossorigin="anonymous"></video>
             </div>
             
             <img id="img-layer" class="image-overlay" src="">
@@ -114,7 +114,7 @@
 
             <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
                 <label><i class="fa-solid fa-volume-high"></i> Controle de Volume</label>
-                <input type="range" id="video-volume" min="0" max="100" value="100" oninput="updateVolume()">
+                <input type="range" id="video-volume" min="0" max="100" value="0" oninput="updateVolume()">
                 
                 <label style="margin-top: 8px;"><i class="fa-solid fa-gauge-high"></i> Velocidade</label>
                 <div class="grid-buttons" style="margin-top: 4px;">
@@ -181,10 +181,16 @@
         let mediaRecorder;
         let activePresets = { pb: false, sepia: false, invert: false };
 
+        // Carregamento de mídia totalmente adaptado para segurança de navegadores mobile
         fileInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                video.src = URL.createObjectURL(file);
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+
+                const fileURL = URL.createObjectURL(file);
+                video.src = fileURL;
                 placeholder.style.display = 'none';
                 fileTitle.innerText = file.name.substring(0, 15) + '...';
                 
@@ -193,8 +199,15 @@
                     startTime = 0;
                     endTime = video.duration;
                     totalTimeLbl.innerText = formatTime(video.duration);
-                    video.play().catch(() => {});
-                    playBtn.className = "fa-solid fa-pause";
+                    
+                    setTimeout(() => {
+                        video.play().then(() => {
+                            playBtn.className = "fa-solid fa-pause";
+                        }).catch(err => {
+                            console.log("Chrome bloqueou autoplay audível. Iniciando mudo.");
+                            playBtn.className = "fa-solid fa-play";
+                        });
+                    }, 100);
                 };
             }
         };
@@ -258,6 +271,8 @@
         }
 
         function updateVolume() {
+            // Se o usuário mexer no volume, desativa o mute forçado do navegador
+            if(video.muted) video.muted = false;
             video.volume = document.getElementById('video-volume').value / 100;
         }
 
@@ -291,8 +306,10 @@
         function playToggle() {
             if (!video.src) return;
             if (video.paused) {
-                video.play().catch(() => {});
-                playBtn.className = "fa-solid fa-pause";
+                if(video.muted && document.getElementById('video-volume').value > 0) video.muted = false;
+                video.play().then(() => {
+                    playBtn.className = "fa-solid fa-pause";
+                }).catch(() => {});
             } else {
                 video.pause();
                 playBtn.className = "fa-solid fa-play";
@@ -355,20 +372,4 @@
             function dragEnd() {
                 document.onmouseup = null;
                 document.onmousemove = null;
-                document.ontouchend = null;
-                document.ontouchmove = null;
-            }
-        }
-
-        function exportVideo() {
-            if (!video.src) { alert("Carregue um vídeo primeiro!"); return; }
-            const exportBtn = document.getElementById('export-btn');
-            exportBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Exportando... Aguarde';
-            exportBtn.disabled = true;
-            try {
-                const stream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
-                recordedChunks = [];
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
-                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
-                mediaRecorder.onstop = () => {
-                    const blob
+               
