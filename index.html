@@ -3,283 +3,364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniCut Web Studio Pro</title>
+    <title>MiniCut Studio</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        :root {
-            --bg-darker: #0d0e12;
-            --bg-dark: #14151a;
-            --bg-card: #1c1d24;
-            --bg-hover: #262833;
-            --accent: #00f2fe;
-            --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-            --text-primary: #ffffff;
-            --text-secondary: #8e92a2;
-            --border-color: #2a2c38;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body { background-color: var(--bg-darker); color: var(--text-primary); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
-        /* HEADER / NAVBAR */
-        header { height: 48px; background-color: var(--bg-dark); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-        .logo { display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 16px; color: #fff; }
-        .logo i { color: var(--accent); font-size: 20px; }
-        .project-title { font-size: 13px; color: var(--text-secondary); background: var(--bg-card); padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border-color); }
-        .header-actions { display: flex; gap: 10px; }
-        .btn-export { background: var(--accent-gradient); color: #000; border: none; padding: 6px 18px; border-radius: 20px; font-weight: bold; font-size: 12px; cursor: pointer; transition: opacity 0.2s; }
-        .btn-export:hover { opacity: 0.9; }
-
-        /* LAYOUT PRINCIPAL */
-        .workspace { display: flex; flex: 1; height: calc(100vh - 200px); }
-
-        /* 1. BARRA LATERAL ESQUERDA (MENU) */
-        .sidebar { width: 70px; background-color: var(--bg-dark); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 20px; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 10px; cursor: pointer; width: 100%; padding: 8px 0; transition: 0.2s; }
-        .nav-item i { font-size: 18px; }
-        .nav-item:hover, .nav-item.active { color: var(--accent); background: var(--bg-card); border-left: 3px solid var(--accent); }
-
-        /* 2. PAINEL DE MÍDIA / RECURSOS */
-        .assets-panel { width: 300px; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .panel-header { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .assets-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; overflow-y: auto; }
-        .asset-card { background: var(--bg-dark); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
-        .asset-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-        .asset-thumb { height: 80px; background: #222; display: flex; align-items: center; justify-content: center; position: relative; }
-        .asset-thumb video, .asset-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .asset-info { padding: 6px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
-
-        /* 3. PREVIEW / PLAYER DE VÍDEO */
-        .preview-area { flex: 1; background-color: var(--bg-darker); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; position: relative; }
-        .canvas-container { width: 100%; max-width: 640px; height: 360px; background: #000; border-radius: 8px; border: 1px solid var(--border-color); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        video#main-player { width: 100%; height: 100%; object-fit: contain; }
+        :root { --accent: #00e5ff; --bg: #0b0c0f; --card: #14161d; --border: #222530; }
+        body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .app { width: 100%; max-width: 430px; display: flex; flex-direction: column; gap: 12px; }
         
-        .player-controls { margin-top: 12px; display: flex; align-items: center; gap: 16px; background: var(--bg-card); padding: 8px 20px; border-radius: 30px; border: 1px solid var(--border-color); }
-        .player-controls i { cursor: pointer; font-size: 14px; color: var(--text-secondary); transition: 0.2s; }
-        .player-controls i:hover { color: var(--text-primary); }
-        .player-controls i.play-btn { font-size: 20px; color: var(--accent); }
-        .time-display { font-size: 11px; font-family: monospace; color: var(--text-secondary); }
-
-        /* 4. PAINEL DE PROPRIEDADES (DIREITA) */
-        .properties-panel { width: 280px; background-color: var(--bg-card); border-left: 1px solid var(--border-color); padding: 12px; overflow-y: auto; }
-        .prop-group { margin-bottom: 20px; }
-        .prop-title { font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: bold; margin-bottom: 10px; letter-spacing: 0.5px; }
-        .prop-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
-        .prop-row input[type="range"] { width: 110px; accent-color: var(--accent); }
-        .prop-row select { background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px; }
-
-        /* TIMELINE (INFERIOR) */
-        .timeline-area { height: 200px; background-color: var(--bg-dark); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
-        .timeline-toolbar { height: 36px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; gap: 16px; font-size: 12px; color: var(--text-secondary); }
-        .timeline-toolbar i { cursor: pointer; transition: 0.2s; }
-        .timeline-toolbar i:hover { color: var(--accent); }
-
-        .tracks-container { flex: 1; overflow-x: auto; overflow-y: auto; padding: 10px; position: relative; background: var(--bg-darker); }
-        .track { height: 36px; background: var(--bg-card); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-color); position: relative; display: flex; align-items: center; padding: 0 8px; }
-        .track-title { font-size: 10px; color: var(--text-secondary); width: 60px; position: sticky; left: 0; background: var(--bg-card); z-index: 2; }
+        .box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+        .preview-box { background: #000; border-radius: 12px; height: 240px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; border: 1px solid var(--border); }
+        video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; transition: transform 0.2s ease; }
         
-        .clip { position: absolute; height: 28px; background: #2a3c50; border: 1px solid var(--accent); border-radius: 4px; top: 3px; cursor: pointer; display: flex; align-items: center; padding: 0 8px; font-size: 10px; color: #fff; white-space: nowrap; overflow: hidden; }
-        .clip.audio { background: #1b4332; border-color: #2dc653; }
-        .clip.text { background: #4a1d24; border-color: #ff4d6d; }
-
-        /* PLAYHEAD (LINHA DE TEMPO) */
-        .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff0055; left: 150px; z-index: 10; pointer-events: none; }
-        .playhead::before { content: ''; position: absolute; top: 0; left: -4px; width: 10px; height: 10px; background: #ff0055; clip-path: polygon(0 0, 100% 0, 50% 100%); }
+        .file-label { background: var(--accent); color: #000; font-weight: bold; padding: 12px; border-radius: 25px; text-align: center; cursor: pointer; display: block; font-size: 14px; }
+        button { background: #1f222b; border: 1px solid #2d313e; color: #fff; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+        button:hover { background: #252936; }
+        button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .btn-main { background: var(--accent); color: #000; font-size: 13px; padding: 12px; border-radius: 8px; font-weight: bold; }
+        
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .control-group { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+        .control-group label { font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: bold; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0; }
+        
+        .parts-container { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 140px; overflow-y: auto; }
+        .part-item { background: #1f222b; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border: 1px solid #2d313e; }
+        .part-item.disabled { opacity: 0.4; text-decoration: line-through; }
+        .part-item button { width: auto; background: #ff3b30; border: none; padding: 4px 8px; font-size: 11px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo">
-            <i class="fa-solid fa-scissors"></i>
-            <span>MiniCut Studio</span>
-        </div>
-        <div class="project-title">Meu_Projeto_MiniCut_01.mp4</div>
-        <div class="header-actions">
-            <button class="btn-export" onclick="alert('Iniciando renderização do vídeo...')"><i class="fa-solid fa-download"></i> Exportar</button>
-        </div>
-    </header>
-
-    <div class="workspace">
-        
-        <div class="sidebar">
-            <div class="nav-item active"><i class="fa-solid fa-folder-open"></i> Mídia</div>
-            <div class="nav-item"><i class="fa-solid fa-music"></i> Áudio</div>
-            <div class="nav-item"><i class="fa-solid fa-font"></i> Texto</div>
-            <div class="nav-item"><i class="fa-solid fa-wand-magic-sparkles"></i> Efeitos</div>
-            <div class="nav-item"><i class="fa-solid fa-border-all"></i> Filtros</div>
-            <div class="nav-item"><i class="fa-solid fa-sliders"></i> Ajustes</div>
+    <div class="app">
+        <div class="box">
+            <label for="video-file" class="file-label"><i class="fa-solid fa-upload"></i> CARREGAR VÍDEO</label>
+            <input type="file" id="video-file" accept="video/*" style="display:none">
         </div>
 
-        <div class="assets-panel">
-            <div class="panel-header">
-                <span>Biblioteca MiniCut</span>
-                <label for="file-input" style="cursor: pointer; color: var(--accent);"><i class="fa-solid fa-plus"></i> Importar</label>
-                <input type="file" id="file-input" accept="video/*" style="display:none">
-            </div>
-            <div class="assets-grid" id="assets-list">
-                <div class="asset-card">
-                    <div class="asset-thumb"><i class="fa-solid fa-film" style="font-size:24px; color:#555;"></i></div>
-                    <div class="asset-info">Exemplo_Demo.mp4</div>
-                </div>
+        <div class="preview-box">
+            <video id="main-player" controls playsinline></video>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-scissors"></i> CORTE & DIVISÃO</span>
+            <div class="control-group">
+                <button style="background: #ff9500; color: #fff; font-size: 12px; padding: 12px;" onclick="Studio.splitVideo()">
+                    <i class="fa-solid fa-grip-lines-vertical"></i> DIVIDIR VÍDEO AQUI
+                </button>
+                <div class="parts-container" id="parts-list"></div>
             </div>
         </div>
 
-        <div class="preview-area">
-            <div class="canvas-container">
-                <video id="main-player" src="" playsinline></video>
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-rotate"></i> ROTAÇÃO & ESPELHO</span>
+            <div class="grid-2" style="margin-top: 8px;">
+                <button onclick="Studio.rotateVideo()"><i class="fa-solid fa-rotate-right"></i> GIRAR 90°</button>
+                <button id="btn-flip" onclick="Studio.toggleFlip()"><i class="fa-solid fa-arrows-left-right"></i> ESPELHAR</button>
             </div>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-volume-high"></i> ÁUDIO</span>
+            <div class="control-group">
+                <label>Volume do Vídeo</label>
+                <input type="range" id="vol-slider" min="0" max="100" value="100" oninput="Studio.updateVolume()">
+            </div>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-expand"></i> FORMATO DA TELA</span>
+            <div class="grid-3" style="margin-top: 8px;">
+                <button id="fit-contain" class="active" onclick="Studio.changeAspect('contain')">Original</button>
+                <button id="fit-cover" onclick="Studio.changeAspect('cover')">Preencher</button>
+                <button id="fit-fill" onclick="Studio.changeAspect('fill')">Esticar</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-gauge-high"></i> VELOCIDADE</span>
+            <div class="grid-3" style="margin-top: 8px;">
+                <button id="sp-05" onclick="Studio.changeSpeed(0.5)">0.5x</button>
+                <button id="sp-10" class="active" onclick="Studio.changeSpeed(1.0)">1.0x</button>
+                <button id="sp-15" onclick="Studio.changeSpeed(1.5)">1.5x</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-palette"></i> FILTROS RÁPIDOS</span>
+            <div class="grid-3" style="margin-top: 8px;">
+                <button id="f-pb" onclick="Studio.togglePreset('pb')">P&B</button>
+                <button id="f-sepia" onclick="Studio.togglePreset('sepia')">Sépia</button>
+                <button id="f-invert" onclick="Studio.togglePreset('invert')">Inverter</button>
+            </div>
+        </div>
+
+        <div class="box">
+            <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-sliders"></i> AJUSTE FINO</span>
             
-            <div class="player-controls">
-                <i class="fa-solid fa-backward-step" onclick="app.seek(0)"></i>
-                <i class="fa-solid fa-play play-btn" id="play-btn" onclick="app.togglePlay()"></i>
-                <i class="fa-solid fa-forward-step"></i>
-                <span class="time-display" id="time-code">00:00:00 / 00:00:00</span>
+            <div class="control-group">
+                <label>Brilho</label>
+                <input type="range" id="b-slider" min="50" max="150" value="100" oninput="Studio.applyAllFilters()">
+            </div>
+
+            <div class="control-group">
+                <label>Contraste</label>
+                <input type="range" id="c-slider" min="50" max="200" value="100" oninput="Studio.applyAllFilters()">
+            </div>
+
+            <div class="control-group">
+                <label>Saturação</label>
+                <input type="range" id="s-slider" min="0" max="200" value="100" oninput="Studio.applyAllFilters()">
+            </div>
+
+            <div class="control-group">
+                <label>Desfoque (Blur)</label>
+                <input type="range" id="bl-slider" min="0" max="10" value="0" step="0.5" oninput="Studio.applyAllFilters()">
             </div>
         </div>
 
-        <div class="properties-panel">
-            <div class="prop-group">
-                <div class="prop-title">Formato & Enquadramento</div>
-                <div class="prop-row">
-                    <span>Proporção</span>
-                    <select id="fit-select" onchange="app.setFit(this.value)">
-                        <option value="contain">Original (Com Bordas)</option>
-                        <option value="cover">Preencher (Crop)</option>
-                        <option value="fill">Esticar (Full)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="prop-group">
-                <div class="prop-title">Ajuste de Imagem</div>
-                <div class="prop-row">
-                    <span>Brilho</span>
-                    <input type="range" id="bright" min="50" max="150" value="100" oninput="app.updateFilters()">
-                </div>
-                <div class="prop-row">
-                    <span>Saturação</span>
-                    <input type="range" id="sat" min="0" max="200" value="100" oninput="app.updateFilters()">
-                </div>
-                <div class="prop-row">
-                    <span>Desfoque</span>
-                    <input type="range" id="blur" min="0" max="10" value="0" step="0.5" oninput="app.updateFilters()">
-                </div>
-            </div>
-
-            <div class="prop-group">
-                <div class="prop-title">Velocidade</div>
-                <div class="prop-row">
-                    <span>Speed Rate</span>
-                    <select onchange="app.setSpeed(this.value)">
-                        <option value="0.5">0.5x (Lento)</option>
-                        <option value="1.0" selected>1.0x (Normal)</option>
-                        <option value="1.5">1.5x (Rápido)</option>
-                        <option value="2.0">2.0x (Turbo)</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
+        <button id="export-btn" class="btn-main" onclick="Studio.exportEditedVideo()">
+            <i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO
+        </button>
     </div>
 
-    <div class="timeline-area">
-        <div class="timeline-toolbar">
-            <i class="fa-solid fa-scissors" title="Dividir (Split)" onclick="alert('Dividir clipe na agulha')"></i>
-            <i class="fa-solid fa-trash" title="Excluir" onclick="alert('Excluir seleção')"></i>
-            <i class="fa-solid fa-copy" title="Duplicar"></i>
-            <span style="border-right: 1px solid var(--border-color); height: 16px;"></span>
-            <i class="fa-solid fa-magnifying-glass-minus"></i>
-            <input type="range" style="width: 80px; accent-color: var(--accent);" value="50">
-            <i class="fa-solid fa-magnifying-glass-plus"></i>
-        </div>
-
-        <div class="tracks-container">
-            <div class="playhead" id="playhead"></div>
-            
-            <div class="track">
-                <span class="track-title"><i class="fa-solid fa-font"></i> Texto</span>
-                <div class="clip text" style="left: 120px; width: 140px;">Legenda Automática</div>
-            </div>
-
-            <div class="track">
-                <span class="track-title"><i class="fa-solid fa-video"></i> Vídeo 1</span>
-                <div class="clip" style="left: 40px; width: 320px;">Clipe_Principal.mp4</div>
-            </div>
-
-            <div class="track">
-                <span class="track-title"><i class="fa-solid fa-music"></i> Áudio 1</span>
-                <div class="clip audio" style="left: 40px; width: 280px;">Música_Fundo.mp3</div>
-            </div>
-        </div>
-    </div>
+    <canvas id="render-canvas" style="display:none;"></canvas>
 
     <script>
-        const app = {
+        const Studio = {
             video: document.getElementById('main-player'),
-            playBtn: document.getElementById('play-btn'),
-            playhead: document.getElementById('playhead'),
+            canvas: document.getElementById('render-canvas'),
+            activePreset: 'none',
+            playbackRate: 1.0,
+            aspectMode: 'contain',
+            rotation: 0,
+            flipped: false,
+            segments: [],
 
             init() {
-                document.getElementById('file-input').addEventListener('change', (e) => {
+                document.getElementById('video-file').addEventListener('change', (e) => {
                     const file = e.target.files[0];
                     if (file) {
                         this.video.src = URL.createObjectURL(file);
                         this.video.load();
+                        
+                        this.video.onloadedmetadata = () => {
+                            this.segments = [{ start: 0, end: this.video.duration, deleted: false }];
+                            this.renderSegmentsList();
+                        };
                     }
                 });
 
                 this.video.ontimeupdate = () => {
-                    if(!this.video.duration) return;
+                    const current = this.video.currentTime;
+                    const segmentInTime = this.segments.find(seg => current >= seg.start && current < seg.end);
                     
-                    const cur = this.formatTime(this.video.currentTime);
-                    const dur = this.formatTime(this.video.duration);
-                    document.getElementById('time-code').innerText = `${cur} / ${dur}`;
-
-                    const percent = (this.video.currentTime / this.video.duration) * 100;
-                    this.playhead.style.left = `${60 + (percent * 4)}px`;
+                    if (segmentInTime && segmentInTime.deleted) {
+                        const nextValid = this.segments.find(seg => seg.start >= segmentInTime.end && !seg.deleted);
+                        if (nextValid) {
+                            this.video.currentTime = nextValid.start;
+                        } else {
+                            this.video.currentTime = this.segments[0].start;
+                        }
+                    }
                 };
             },
 
-            togglePlay() {
-                if (!this.video.src) return alert("Por favor, importe um vídeo primeiro!");
-                
-                if (this.video.paused) {
-                    this.video.play();
-                    this.playBtn.className = "fa-solid fa-pause play-btn";
-                } else {
-                    this.video.pause();
-                    this.playBtn.className = "fa-solid fa-play play-btn";
+            rotateVideo() {
+                this.rotation = (this.rotation + 90) % 360;
+                this.updateTransform();
+            },
+
+            toggleFlip() {
+                this.flipped = !this.flipped;
+                document.getElementById('btn-flip').classList.toggle('active', this.flipped);
+                this.updateTransform();
+            },
+
+            updateTransform() {
+                const scaleX = this.flipped ? -1 : 1;
+                this.video.style.transform = `rotate(${this.rotation}deg) scaleX(${scaleX})`;
+            },
+
+            updateVolume() {
+                const vol = document.getElementById('vol-slider').value;
+                this.video.volume = vol / 100;
+            },
+
+            splitVideo() {
+                if (!this.video.src || this.video.duration === 0) return;
+                const cutPoint = this.video.currentTime;
+
+                for (let i = 0; i < this.segments.length; i++) {
+                    let seg = this.segments[i];
+                    if (cutPoint > seg.start && cutPoint < seg.end) {
+                        const oldEnd = seg.end;
+                        seg.end = cutPoint;
+                        
+                        this.segments.splice(i + 1, 0, {
+                            start: cutPoint,
+                            end: oldEnd,
+                            deleted: false
+                        });
+                        break;
+                    }
                 }
+                this.renderSegmentsList();
             },
 
-            seek(seconds) {
-                this.video.currentTime = seconds;
+            toggleSegment(index) {
+                this.segments[index].deleted = !this.segments[index].deleted;
+                this.renderSegmentsList();
             },
 
-            setFit(mode) {
+            renderSegmentsList() {
+                const listContainer = document.getElementById('parts-list');
+                listContainer.innerHTML = '';
+
+                this.segments.forEach((seg, i) => {
+                    const item = document.createElement('div');
+                    item.className = `part-item ${seg.deleted ? 'disabled' : ''}`;
+                    
+                    const duration = (seg.end - seg.start).toFixed(1);
+                    item.innerHTML = `
+                        <span>Pedaço ${i+1} (${duration}s)</span>
+                        <button style="width:auto; background:${seg.deleted ? '#34c759':'#ff3b30'}; border:none;" onclick="Studio.toggleSegment(${i})">
+                            ${seg.deleted ? 'Restaurar' : 'Excluir'}
+                        </button>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            },
+
+            changeAspect(mode) {
+                this.aspectMode = mode;
                 this.video.style.objectFit = mode;
+                ['contain', 'cover', 'fill'].forEach(m => document.getElementById(`fit-${m}`).classList.remove('active'));
+                document.getElementById(`fit-${mode}`).classList.add('active');
             },
 
-            setSpeed(val) {
-                this.video.playbackRate = parseFloat(val);
+            changeSpeed(rate) {
+                this.playbackRate = rate;
+                this.video.playbackRate = rate;
+                ['05', '10', '15'].forEach(id => document.getElementById(`sp-${id}`).classList.remove('active'));
+                document.getElementById(`sp-${rate.toString().replace('.', '')}`).classList.add('active');
             },
 
-            updateFilters() {
-                const b = document.getElementById('bright').value;
-                const s = document.getElementById('sat').value;
-                const bl = document.getElementById('blur').value;
-                this.video.style.filter = `brightness(${b}%) saturate(${s}%) blur(${bl}px)`;
+            togglePreset(type) {
+                if (this.activePreset === type) this.activePreset = 'none';
+                else this.activePreset = type;
+                
+                ['f-pb', 'f-sepia', 'f-invert'].forEach(f => document.getElementById(f).classList.remove('active'));
+                if (this.activePreset !== 'none') document.getElementById(`f-${type}`).classList.add('active');
+                
+                this.applyAllFilters();
             },
 
-            formatTime(sec) {
-                const m = Math.floor(sec / 60).toString().padStart(2, '0');
-                const s = Math.floor(sec % 60).toString().padStart(2, '0');
-                return `00:${m}:${s}`;
+            applyAllFilters() {
+                const b = document.getElementById('b-slider').value;
+                const c = document.getElementById('c-slider').value;
+                const s = document.getElementById('s-slider').value;
+                const bl = document.getElementById('bl-slider').value;
+                
+                let filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${bl}px)`;
+                if (this.activePreset === 'pb') filterStr += ' grayscale(100%)';
+                if (this.activePreset === 'sepia') filterStr += ' sepia(100%)';
+                if (this.activePreset === 'invert') filterStr += ' invert(100%)';
+                
+                this.video.style.filter = filterStr;
+            },
+
+            exportEditedVideo() {
+                if (!this.video.src) return alert("Carregue um vídeo primeiro!");
+                
+                const validSegments = this.segments.filter(s => !s.deleted);
+                if (validSegments.length === 0) return alert("Você excluiu todas as partes!");
+
+                const btn = document.getElementById('export-btn');
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PROCESSANDO...';
+                btn.disabled = true;
+
+                this.video.pause();
+                const ctx = this.canvas.getContext('2d');
+                
+                let renderW = Math.min(this.video.videoWidth || 640, 854);
+                let renderH = Math.min(this.video.videoHeight || 360, 480);
+
+                if (this.rotation === 90 || this.rotation === 270) {
+                    this.canvas.width = renderH;
+                    this.canvas.height = renderW;
+                } else {
+                    this.canvas.width = renderW;
+                    this.canvas.height = renderH;
+                }
+
+                const canvasStream = this.canvas.captureStream(30);
+                const finalStream = new MediaStream();
+                canvasStream.getVideoTracks().forEach(t => finalStream.addTrack(t));
+
+                if (this.video.captureStream) {
+                    const audio = this.video.captureStream().getAudioTracks();
+                    if (audio.length > 0) finalStream.addTrack(audio[0]);
+                }
+
+                const chunks = [];
+                const recorder = new MediaRecorder(finalStream, { mimeType: 'video/webm' });
+                recorder.ondataavailable = e => chunks.push(e.data);
+                
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'minicut_editado.webm';
+                    a.click();
+                    
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO';
+                    btn.disabled = false;
+                };
+
+                let currentSeg = 0;
+                this.video.currentTime = validSegments[currentSeg].start;
+                this.video.playbackRate = this.playbackRate;
+                recorder.start();
+
+                const loop = setInterval(() => {
+                    let active = validSegments[currentSeg];
+                    if (this.video.currentTime >= active.end) {
+                        currentSeg++;
+                        if (currentSeg < validSegments.length) {
+                            this.video.currentTime = validSegments[currentSeg].start;
+                        } else {
+                            clearInterval(loop);
+                            recorder.stop();
+                            this.video.pause();
+                            return;
+                        }
+                    }
+
+                    ctx.save();
+                    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    ctx.filter = this.video.style.filter || 'none';
+
+                    ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
+                    if (this.rotation !== 0) ctx.rotate((this.rotation * Math.PI) / 180);
+                    if (this.flipped) ctx.scale(-1, 1);
+
+                    let drawW = (this.rotation === 90 || this.rotation === 270) ? this.canvas.height : this.canvas.width;
+                    let drawH = (this.rotation === 90 || this.rotation === 270) ? this.canvas.width : this.canvas.height;
+
+                    ctx.drawImage(this.video, -drawW / 2, -drawH / 2, drawW, drawH);
+                    ctx.restore();
+
+                }, 33);
+
+                this.video.play().catch(() => {});
             }
         };
 
-        window.onload = () => app.init();
+        window.onload = () => Studio.init();
     </script>
 </body>
 </html>
