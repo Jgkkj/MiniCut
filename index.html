@@ -3,351 +3,283 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MiniCut Studio Pro Ultimate</title>
+    <title>MiniCut Web Studio Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        :root { --accent: #00e5ff; --bg: #0b0c0f; --card: #14161d; }
-        body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .app { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 15px; }
-        
-        .header { background: var(--card); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; border: 1px solid #222530; }
-        .icon { background: #1f222b; border-radius: 8px; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; color: var(--accent); font-weight: bold; }
-        .header h2 { margin: 0; font-size: 16px; }
-        
-        .import-btn { background: var(--accent); color: #000; font-weight: bold; border: none; padding: 14px; border-radius: 30px; text-align: center; cursor: pointer; display: block; font-size: 14px; }
-        .layer-btn { background: #252830; border: 1px solid #383c47; color: #fff; font-weight: bold; padding: 12px; border-radius: 8px; text-align: center; cursor: pointer; display: block; font-size: 12px; margin-top: 5px; }
-        .layer-btn:hover { border-color: var(--accent); color: var(--accent); }
+        :root {
+            --bg-darker: #0d0e12;
+            --bg-dark: #14151a;
+            --bg-card: #1c1d24;
+            --bg-hover: #262833;
+            --accent: #00f2fe;
+            --accent-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #8e92a2;
+            --border-color: #2a2c38;
+        }
 
-        .preview-box { background: #000; border-radius: 16px; height: 260px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; border: 1px solid #1f222b; }
-        
-        .video-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: transform 0.1s; background: #000; }
-        video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
-        
-        .empty-text { color: #555; font-size: 14px; text-align: center; position: absolute; z-index: 2; pointer-events: none; }
-        
-        .image-overlay { position: absolute; max-width: 100px; max-height: 100px; display: none; z-index: 5; cursor: move; object-fit: contain; left: 50px; top: 50px; touch-action: none; }
-        .text-overlay { position: absolute; color: #fff; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px #000; cursor: move; display: none; z-index: 6; text-align: center; padding: 10px; left: 50px; top: 120px; user-select: none; touch-action: none; white-space: nowrap; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background-color: var(--bg-darker); color: var(--text-primary); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        .timeline-box { background: #1a1c24; padding: 10px; border-radius: 12px; border: 1px solid #2d313e; }
-        .timeline-bar { width: 100%; accent-color: var(--accent); margin: 5px 0; cursor: pointer; }
+        /* HEADER / NAVBAR */
+        header { height: 48px; background-color: var(--bg-dark); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .logo { display: flex; align-items: center; gap: 10px; font-weight: bold; font-size: 16px; color: #fff; }
+        .logo i { color: var(--accent); font-size: 20px; }
+        .project-title { font-size: 13px; color: var(--text-secondary); background: var(--bg-card); padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border-color); }
+        .header-actions { display: flex; gap: 10px; }
+        .btn-export { background: var(--accent-gradient); color: #000; border: none; padding: 6px 18px; border-radius: 20px; font-weight: bold; font-size: 12px; cursor: pointer; transition: opacity 0.2s; }
+        .btn-export:hover { opacity: 0.9; }
 
-        .player-bar { display: flex; justify-content: center; gap: 25px; background: rgba(0,0,0,0.7); padding: 8px 20px; border-radius: 20px; width: fit-content; margin: -5px auto 0 auto; z-index: 10; }
-        .player-bar i { font-size: 18px; cursor: pointer; }
-        .player-bar i:hover { color: var(--accent); }
-        
-        /* Estilos da nova caixinha de Debug */
-        .debug-box { background: #1a1510; border: 1px solid #ff9800; border-radius: 12px; padding: 12px; font-family: monospace; font-size: 11px; color: #ffb74d; }
-        .debug-title { font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; color: #ff9800; }
+        /* LAYOUT PRINCIPAL */
+        .workspace { display: flex; flex: 1; height: calc(100vh - 200px); }
 
-        .controls-box { background: var(--card); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 14px; border: 1px solid #222530; }
-        .slider-group { display: flex; flex-direction: column; gap: 4px; }
-        .slider-group label { font-size: 11px; text-transform: uppercase; color: #777; font-weight: bold; display: flex; justify-content: space-between; }
-        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; margin: 4px 0; }
+        /* 1. BARRA LATERAL ESQUERDA (MENU) */
+        .sidebar { width: 70px; background-color: var(--bg-dark); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 10px; gap: 20px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 10px; cursor: pointer; width: 100%; padding: 8px 0; transition: 0.2s; }
+        .nav-item i { font-size: 18px; }
+        .nav-item:hover, .nav-item.active { color: var(--accent); background: var(--bg-card); border-left: 3px solid var(--accent); }
+
+        /* 2. PAINEL DE MÍDIA / RECURSOS */
+        .assets-panel { width: 300px; background-color: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .panel-header { padding: 12px; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .assets-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 12px; overflow-y: auto; }
+        .asset-card { background: var(--bg-dark); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; cursor: pointer; transition: 0.2s; position: relative; }
+        .asset-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .asset-thumb { height: 80px; background: #222; display: flex; align-items: center; justify-content: center; position: relative; }
+        .asset-thumb video, .asset-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .asset-info { padding: 6px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
+
+        /* 3. PREVIEW / PLAYER DE VÍDEO */
+        .preview-area { flex: 1; background-color: var(--bg-darker); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; position: relative; }
+        .canvas-container { width: 100%; max-width: 640px; height: 360px; background: #000; border-radius: 8px; border: 1px solid var(--border-color); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        video#main-player { width: 100%; height: 100%; object-fit: contain; }
         
-        .grid-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 5px; }
-        button { background: #1f222b; border: 1px solid #2d313e; color: #fff; padding: 10px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        button:hover { border-color: var(--accent); color: var(--accent); }
-        button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        .player-controls { margin-top: 12px; display: flex; align-items: center; gap: 16px; background: var(--bg-card); padding: 8px 20px; border-radius: 30px; border: 1px solid var(--border-color); }
+        .player-controls i { cursor: pointer; font-size: 14px; color: var(--text-secondary); transition: 0.2s; }
+        .player-controls i:hover { color: var(--text-primary); }
+        .player-controls i.play-btn { font-size: 20px; color: var(--accent); }
+        .time-display { font-size: 11px; font-family: monospace; color: var(--text-secondary); }
+
+        /* 4. PAINEL DE PROPRIEDADES (DIREITA) */
+        .properties-panel { width: 280px; background-color: var(--bg-card); border-left: 1px solid var(--border-color); padding: 12px; overflow-y: auto; }
+        .prop-group { margin-bottom: 20px; }
+        .prop-title { font-size: 11px; text-transform: uppercase; color: var(--text-secondary); font-weight: bold; margin-bottom: 10px; letter-spacing: 0.5px; }
+        .prop-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+        .prop-row input[type="range"] { width: 110px; accent-color: var(--accent); }
+        .prop-row select { background: var(--bg-dark); border: 1px solid var(--border-color); color: #fff; padding: 4px; border-radius: 4px; font-size: 11px; }
+
+        /* TIMELINE (INFERIOR) */
+        .timeline-area { height: 200px; background-color: var(--bg-dark); border-top: 1px solid var(--border-color); display: flex; flex-direction: column; }
+        .timeline-toolbar { height: 36px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 16px; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+        .timeline-toolbar i { cursor: pointer; transition: 0.2s; }
+        .timeline-toolbar i:hover { color: var(--accent); }
+
+        .tracks-container { flex: 1; overflow-x: auto; overflow-y: auto; padding: 10px; position: relative; background: var(--bg-darker); }
+        .track { height: 36px; background: var(--bg-card); border-radius: 4px; margin-bottom: 6px; border: 1px solid var(--border-color); position: relative; display: flex; align-items: center; padding: 0 8px; }
+        .track-title { font-size: 10px; color: var(--text-secondary); width: 60px; position: sticky; left: 0; background: var(--bg-card); z-index: 2; }
         
-        .info-bar { display: flex; justify-content: space-between; font-size: 11px; color: #444; padding: 0 4px; }
-        .text-input-box { display: none; gap: 8px; margin-top: 5px; }
-        .text-input-box input { flex: 1; background: #1f222b; border: 1px solid #2d313e; color: #fff; padding: 8px; border-radius: 6px; }
+        .clip { position: absolute; height: 28px; background: #2a3c50; border: 1px solid var(--accent); border-radius: 4px; top: 3px; cursor: pointer; display: flex; align-items: center; padding: 0 8px; font-size: 10px; color: #fff; white-space: nowrap; overflow: hidden; }
+        .clip.audio { background: #1b4332; border-color: #2dc653; }
+        .clip.text { background: #4a1d24; border-color: #ff4d6d; }
+
+        /* PLAYHEAD (LINHA DE TEMPO) */
+        .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff0055; left: 150px; z-index: 10; pointer-events: none; }
+        .playhead::before { content: ''; position: absolute; top: 0; left: -4px; width: 10px; height: 10px; background: #ff0055; clip-path: polygon(0 0, 100% 0, 50% 100%); }
     </style>
 </head>
 <body>
-    <div class="app">
-        <div class="header">
-            <div class="icon">&lt;&gt;</div>
-            <h2>MiniCut Studio Pro Ultimate</h2>
+
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-scissors"></i>
+            <span>MiniCut Studio</span>
+        </div>
+        <div class="project-title">Meu_Projeto_MiniCut_01.mp4</div>
+        <div class="header-actions">
+            <button class="btn-export" onclick="alert('Iniciando renderização do vídeo...')"><i class="fa-solid fa-download"></i> Exportar</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <div class="sidebar">
+            <div class="nav-item active"><i class="fa-solid fa-folder-open"></i> Mídia</div>
+            <div class="nav-item"><i class="fa-solid fa-music"></i> Áudio</div>
+            <div class="nav-item"><i class="fa-solid fa-font"></i> Texto</div>
+            <div class="nav-item"><i class="fa-solid fa-wand-magic-sparkles"></i> Efeitos</div>
+            <div class="nav-item"><i class="fa-solid fa-border-all"></i> Filtros</div>
+            <div class="nav-item"><i class="fa-solid fa-sliders"></i> Ajustes</div>
         </div>
 
-        <label for="video-file" class="import-btn">1. SELECIONAR VÍDEO BASE</label>
-        <input type="file" id="video-file" accept="video/*" style="display:none">
+        <div class="assets-panel">
+            <div class="panel-header">
+                <span>Biblioteca MiniCut</span>
+                <label for="file-input" style="cursor: pointer; color: var(--accent);"><i class="fa-solid fa-plus"></i> Importar</label>
+                <input type="file" id="file-input" accept="video/*" style="display:none">
+            </div>
+            <div class="assets-grid" id="assets-list">
+                <div class="asset-card">
+                    <div class="asset-thumb"><i class="fa-solid fa-film" style="font-size:24px; color:#555;"></i></div>
+                    <div class="asset-info">Exemplo_Demo.mp4</div>
+                </div>
+            </div>
+        </div>
 
-        <label for="image-file" class="layer-btn"><i class="fa-solid fa-layer-group"></i> 2. ADICIONAR CAMADA (IMAGEM)</label>
-        <input type="file" id="image-file" accept="image/*" style="display:none">
-
-        <div class="preview-box" id="preview-box">
-            <div id="placeholder" class="empty-text">
-                <i class="fa-solid fa-film" style="font-size: 30px; margin-bottom: 8px; color: #333;"></i><br>
-                Nenhum vídeo carregado
+        <div class="preview-area">
+            <div class="canvas-container">
+                <video id="main-player" src="" playsinline></video>
             </div>
             
-            <div class="video-container" id="video-container">
-                <video id="editor-video" playsinline webkit-playsinline muted crossorigin="anonymous" preload="auto"></video>
+            <div class="player-controls">
+                <i class="fa-solid fa-backward-step" onclick="app.seek(0)"></i>
+                <i class="fa-solid fa-play play-btn" id="play-btn" onclick="app.togglePlay()"></i>
+                <i class="fa-solid fa-forward-step"></i>
+                <span class="time-display" id="time-code">00:00:00 / 00:00:00</span>
             </div>
+        </div>
+
+        <div class="properties-panel">
+            <div class="prop-group">
+                <div class="prop-title">Formato & Enquadramento</div>
+                <div class="prop-row">
+                    <span>Proporção</span>
+                    <select id="fit-select" onchange="app.setFit(this.value)">
+                        <option value="contain">Original (Com Bordas)</option>
+                        <option value="cover">Preencher (Crop)</option>
+                        <option value="fill">Esticar (Full)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="prop-group">
+                <div class="prop-title">Ajuste de Imagem</div>
+                <div class="prop-row">
+                    <span>Brilho</span>
+                    <input type="range" id="bright" min="50" max="150" value="100" oninput="app.updateFilters()">
+                </div>
+                <div class="prop-row">
+                    <span>Saturação</span>
+                    <input type="range" id="sat" min="0" max="200" value="100" oninput="app.updateFilters()">
+                </div>
+                <div class="prop-row">
+                    <span>Desfoque</span>
+                    <input type="range" id="blur" min="0" max="10" value="0" step="0.5" oninput="app.updateFilters()">
+                </div>
+            </div>
+
+            <div class="prop-group">
+                <div class="prop-title">Velocidade</div>
+                <div class="prop-row">
+                    <span>Speed Rate</span>
+                    <select onchange="app.setSpeed(this.value)">
+                        <option value="0.5">0.5x (Lento)</option>
+                        <option value="1.0" selected>1.0x (Normal)</option>
+                        <option value="1.5">1.5x (Rápido)</option>
+                        <option value="2.0">2.0x (Turbo)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="timeline-area">
+        <div class="timeline-toolbar">
+            <i class="fa-solid fa-scissors" title="Dividir (Split)" onclick="alert('Dividir clipe na agulha')"></i>
+            <i class="fa-solid fa-trash" title="Excluir" onclick="alert('Excluir seleção')"></i>
+            <i class="fa-solid fa-copy" title="Duplicar"></i>
+            <span style="border-right: 1px solid var(--border-color); height: 16px;"></span>
+            <i class="fa-solid fa-magnifying-glass-minus"></i>
+            <input type="range" style="width: 80px; accent-color: var(--accent);" value="50">
+            <i class="fa-solid fa-magnifying-glass-plus"></i>
+        </div>
+
+        <div class="tracks-container">
+            <div class="playhead" id="playhead"></div>
             
-            <img id="img-layer" class="image-overlay" src="">
-            <div id="text-layer" class="text-overlay">Seu Texto Aqui</div>
-        </div>
-
-        <div class="debug-box">
-            <div class="debug-title"><span>&lt;&gt; PAINEL DE TESTES DO CHROME</span> <span id="db-status" style="color:#ff4444;">OFFLINE</span></div>
-            <div>Arquivo Mime: <span id="db-mime" style="color:#fff;">Nenhum</span></div>
-            <div>Resolução Real: <span id="db-res" style="color:#fff;">0 x 0</span></div>
-            <div>Erro do Player: <span id="db-err" style="color:#ff4444;">Nenhum erro registrado</span></div>
-        </div>
-
-        <div class="timeline-box">
-            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 2px;">
-                <span id="current-time-lbl">00:00</span>
-                <span id="total-time-lbl">00:00</span>
-            </div>
-            <input type="range" id="timeline-scrub" class="timeline-bar" min="0" value="0" step="0.1" oninput="scrubVideo()">
-        </div>
-
-        <div class="player-bar">
-            <i class="fa-solid fa-backward" onclick="restartVid()"></i>
-            <i class="fa-solid fa-play" id="play-btn" onclick="playToggle()"></i>
-        </div>
-
-        <div class="info-bar">
-            <span id="file-title">Aguardando vídeo...</span>
-            <span id="cut-info" style="color: var(--accent);">Vídeo Completo</span>
-        </div>
-
-        <div class="controls-box">
-            <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
-                <label><i class="fa-solid fa-scissors"></i> Divisão estilo CapCut</label>
-                <div class="grid-buttons" style="grid-template-columns: 1fr 1fr; margin-top: 6px;">
-                    <button onclick="splitVideo('before')" style="border-color: #ff9800; color: #ff9800;"><i class="fa-solid fa-scissors"></i> Deletar Antes</button>
-                    <button onclick="splitVideo('after')" style="border-color: #ff5722; color: #ff5722;"><i class="fa-solid fa-scissors"></i> Deletar Depois</button>
-                </div>
+            <div class="track">
+                <span class="track-title"><i class="fa-solid fa-font"></i> Texto</span>
+                <div class="clip text" style="left: 120px; width: 140px;">Legenda Automática</div>
             </div>
 
-            <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
-                <label><i class="fa-solid fa-rotate"></i> Girar & Zoom do Vídeo</label>
-                <div style="display:flex; flex-direction:column; gap:10px; font-size:11px; color:#666; margin-top:4px;">
-                    <span>Girar: <input type="range" id="video-rotate" min="0" max="360" value="0" oninput="transformVideo()"></span>
-                    <span>Zoom: <input type="range" id="video-zoom" min="50" max="200" value="100" oninput="transformVideo()"></span>
-                </div>
+            <div class="track">
+                <span class="track-title"><i class="fa-solid fa-video"></i> Vídeo 1</span>
+                <div class="clip" style="left: 40px; width: 320px;">Clipe_Principal.mp4</div>
             </div>
 
-            <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
-                <label><i class="fa-solid fa-volume-high"></i> Controle de Volume</label>
-                <input type="range" id="video-volume" min="0" max="100" value="100" oninput="updateVolume()">
-                
-                <label style="margin-top: 8px;"><i class="fa-solid fa-gauge-high"></i> Velocidade</label>
-                <div class="grid-buttons" style="margin-top: 4px;">
-                    <button id="speed-slow" onclick="setSpeed(0.5)">Slow 0.5x</button>
-                    <button id="speed-normal" class="active" onclick="setSpeed(1.0)">Normal 1x</button>
-                    <button id="speed-fast" onclick="setSpeed(1.5)">Fast 1.5x</button>
-                </div>
-            </div>
-
-            <div class="slider-group" id="layer-control" style="display:none; border-bottom: 1px solid #222530; padding-bottom: 10px;">
-                <label><i class="fa-solid fa-maximize"></i> Tamanho da Camada</label>
-                <input type="range" id="layer-size" min="30" max="300" value="100" oninput="updateLayerSize()">
-            </div>
-
-            <div class="slider-group" style="border-bottom: 1px solid #222530; padding-bottom: 10px;">
-                <div class="grid-buttons" style="grid-template-columns: 1fr; margin: 0;">
-                    <button onclick="toggleTextBox()"><i class="fa-solid fa-t"></i> ADICIONAR CAMADA DE TEXTO</button>
-                </div>
-                <div id="input-box" class="text-input-box">
-                    <input type="text" id="text-value" placeholder="Digite o texto por cima..." oninput="updateTextLayer()">
-                </div>
-            </div>
-
-            <div class="slider-group">
-                <label>Filtros Avançados de Cor</label>
-                <span style="font-size:10px; color:#666;">Brilho: <input type="range" id="fx-bright" min="0" max="200" value="100" oninput="applyAllFX()"></span>
-                <span style="font-size:10px; color:#666;">Contraste: <input type="range" id="fx-contrast" min="0" max="200" value="100" oninput="applyAllFX()"></span>
-                <span style="font-size:10px; color:#666;">Saturação: <input type="range" id="fx-saturate" min="0" max="200" value="100" oninput="applyAllFX()"></span>
-                <span style="font-size:10px; color:#666;">Desfoque: <input type="range" id="fx-blur" min="0" max="15" value="0" oninput="applyAllFX()"></span>
-            </div>
-
-            <div class="grid-buttons">
-                <button id="preset-pb" onclick="togglePreset('pb')">Preto & Branco</button>
-                <button id="preset-sepia" onclick="togglePreset('sepia')">Sépia</button>
-                <button id="preset-invert" onclick="togglePreset('invert')">Inverter</button>
-            </div>
-            
-            <div class="grid-buttons" style="grid-template-columns: 1fr;">
-                <button id="export-btn" onclick="exportVideo()" style="background: var(--accent); color: #000; border-color: var(--accent); padding: 14px; font-size: 13px;"><i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO</button>
-                <button onclick="resetEditor()" style="color:#ff4444; background: #2a1616; border-color: #5a2222; padding: 12px; font-size: 12px;"><i class="fa-solid fa-trash-arrow-up"></i> RESETAR TUDO</button>
+            <div class="track">
+                <span class="track-title"><i class="fa-solid fa-music"></i> Áudio 1</span>
+                <div class="clip audio" style="left: 40px; width: 280px;">Música_Fundo.mp3</div>
             </div>
         </div>
     </div>
 
     <script>
-        const video = document.getElementById('editor-video');
-        const videoContainer = document.getElementById('video-container');
-        const fileInput = document.getElementById('video-file');
-        const imageInput = document.getElementById('image-file');
-        const placeholder = document.getElementById('placeholder');
-        const playBtn = document.getElementById('play-btn');
-        const fileTitle = document.getElementById('file-title');
-        const textLayer = document.getElementById('text-layer');
-        const imgLayer = document.getElementById('img-layer');
-        const cutInfo = document.getElementById('cut-info');
-        const layerControl = document.getElementById('layer-control');
-        const timelineScrub = document.getElementById('timeline-scrub');
-        const currentTimeLbl = document.getElementById('current-time-lbl');
-        const totalTimeLbl = document.getElementById('total-time-lbl');
+        const app = {
+            video: document.getElementById('main-player'),
+            playBtn: document.getElementById('play-btn'),
+            playhead: document.getElementById('playhead'),
 
-        // Elementos do painel de Debug
-        const dbStatus = document.getElementById('db-status');
-        const dbMime = document.getElementById('db-mime');
-        const dbRes = document.getElementById('db-res');
-        const dbErr = document.getElementById('db-err');
-
-        let startTime = 0;
-        let endTime = 0;
-        let recordedChunks = [];
-        let mediaRecorder;
-        let activePresets = { pb: false, sepia: false, invert: false };
-        let currentVideoURL = null;
-        let currentImageURL = null;
-
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                placeholder.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Abrindo fluxo binário...';
-                dbStatus.innerText = "CARREGANDO...";
-                dbStatus.style.color = "#ff9800";
-                dbMime.innerText = file.type || "Desconhecido (.mp4 genérico)";
-                dbErr.innerText = "Nenhum erro registrado até agora";
-                
-                video.pause();
-                if (currentVideoURL) URL.revokeObjectURL(currentVideoURL);
-
-                // Força o empacotamento em objeto binário seguro (Blob)
-                const videoBlob = new Blob([file], { type: file.type || 'video/mp4' });
-                currentVideoURL = URL.createObjectURL(videoBlob);
-                
-                video.src = currentVideoURL;
-                video.load();
-                
-                video.onloadedmetadata = () => {
-                    placeholder.style.display = 'none';
-                    fileTitle.innerText = file.name.substring(0, 15) + '...';
-                    
-                    timelineScrub.max = video.duration;
-                    startTime = 0;
-                    endTime = video.duration;
-                    totalTimeLbl.innerText = formatTime(video.duration);
-                    
-                    video.muted = false;
-                    video.volume = 1.0;
-                    
-                    // Altera ligeiramente o tempo para forçar a renderização do frame gráfico
-                    video.currentTime = 0.1;
-
-                    dbStatus.innerText = "PRONTO (METADADOS OK)";
-                    dbStatus.style.color = "#00e5ff";
-                    dbRes.innerText = `${video.videoWidth} x ${video.videoHeight}`;
-                };
-
-                video.onerror = () => {
-                    let errCode = video.error ? video.error.code : 'Desconhecido';
-                    let errMsg = "Erro Desconhecido";
-                    if(video.error) {
-                        if(video.error.code === 1) errMsg = "Abandono de carregamento (MEDIA_ERR_ABORTED)";
-                        if(video.error.code === 2) errMsg = "Falha de Rede (MEDIA_ERR_NETWORK)";
-                        if(video.error.code === 3) errMsg = "Codec incompatível / Decodificação falhou (MEDIA_ERR_DECODE)";
-                        if(video.error.code === 4) errMsg = "Formato de vídeo bloqueado pelo sistema (MEDIA_ERR_SRC_NOT_SUPPORTED)";
+            init() {
+                document.getElementById('file-input').addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        this.video.src = URL.createObjectURL(file);
+                        this.video.load();
                     }
-                    dbStatus.innerText = "ERRO DE RENDERIZAÇÃO";
-                    dbStatus.style.color = "#ff4444";
-                    dbErr.innerText = `Código [${errCode}]: ${errMsg}`;
+                });
+
+                this.video.ontimeupdate = () => {
+                    if(!this.video.duration) return;
+                    
+                    const cur = this.formatTime(this.video.currentTime);
+                    const dur = this.formatTime(this.video.duration);
+                    document.getElementById('time-code').innerText = `${cur} / ${dur}`;
+
+                    const percent = (this.video.currentTime / this.video.duration) * 100;
+                    this.playhead.style.left = `${60 + (percent * 4)}px`;
                 };
-            }
-        };
+            },
 
-        imageInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (currentImageURL) {
-                    URL.revokeObjectURL(currentImageURL);
+            togglePlay() {
+                if (!this.video.src) return alert("Por favor, importe um vídeo primeiro!");
+                
+                if (this.video.paused) {
+                    this.video.play();
+                    this.playBtn.className = "fa-solid fa-pause play-btn";
+                } else {
+                    this.video.pause();
+                    this.playBtn.className = "fa-solid fa-play play-btn";
                 }
-                currentImageURL = URL.createObjectURL(file);
-                imgLayer.src = currentImageURL;
-                imgLayer.style.display = 'block';
-                layerControl.style.display = 'flex';
-                makeDraggable(imgLayer);
+            },
+
+            seek(seconds) {
+                this.video.currentTime = seconds;
+            },
+
+            setFit(mode) {
+                this.video.style.objectFit = mode;
+            },
+
+            setSpeed(val) {
+                this.video.playbackRate = parseFloat(val);
+            },
+
+            updateFilters() {
+                const b = document.getElementById('bright').value;
+                const s = document.getElementById('sat').value;
+                const bl = document.getElementById('blur').value;
+                this.video.style.filter = `brightness(${b}%) saturate(${s}%) blur(${bl}px)`;
+            },
+
+            formatTime(sec) {
+                const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                const s = Math.floor(sec % 60).toString().padStart(2, '0');
+                return `00:${m}:${s}`;
             }
         };
 
-        function formatTime(secs) {
-            if (isNaN(secs)) return "00:00";
-            const m = Math.floor(secs / 60).toString().padStart(2, '0');
-            const s = Math.floor(secs % 60).toString().padStart(2, '0');
-            return `${m}:${s}`;
-        }
-
-        function scrubVideo() {
-            if (!video.src) return;
-            video.currentTime = parseFloat(timelineScrub.value);
-        }
-
-        function splitVideo(type) {
-            if (!video.src) return;
-            const currentPosition = video.currentTime;
-            
-            if (type === 'before') {
-                startTime = currentPosition;
-            } else if (type === 'after') {
-                endTime = currentPosition;
-            }
-            
-            cutInfo.innerText = `Corte: ${formatTime(startTime)} até ${formatTime(endTime)}`;
-            video.currentTime = startTime;
-        }
-
-        video.ontimeupdate = () => {
-            if (!video.src) return;
-            timelineScrub.value = video.currentTime;
-            currentTimeLbl.innerText = formatTime(video.currentTime);
-
-            if (video.currentTime < startTime || video.currentTime >= endTime) {
-                video.currentTime = startTime;
-            }
-        };
-
-        function transformVideo() {
-            const rot = document.getElementById('video-rotate').value;
-            const zoom = document.getElementById('video-zoom').value / 100;
-            videoContainer.style.transform = `rotate(${rot}deg) scale(${zoom})`;
-        }
-
-        function updateLayerSize() {
-            const size = document.getElementById('layer-size').value;
-            imgLayer.style.maxWidth = size + 'px';
-            imgLayer.style.maxHeight = size + 'px';
-        }
-
-        function updateVolume() {
-            video.muted = false;
-            video.volume = document.getElementById('video-volume').value / 100;
-        }
-
-        function setSpeed(rate) {
-            video.playbackRate = rate;
-            document.getElementById('speed-slow').classList.remove('active');
-            document.getElementById('speed-normal').classList.remove('active');
-            document.getElementById('speed-fast').classList.remove('active');
-            
-            if(rate === 0.5) document.getElementById('speed-slow').classList.add('active');
-            if(rate === 1.0) document.getElementById('speed-normal').classList.add('active');
-            if(rate === 1.5) document.getElementById('speed-fast').classList.add('active');
-        }
-
-        function toggleTextBox() {
-            const box = document.getElementById('input-box');
-            if (box.style.display === 'flex') {
-                box.style.display = 'none';
-                textLayer.style.display = 'none';
-            } else {
-                box.style.display = 'flex';
-                textLayer.style.display = 'block';
-                makeDraggable(textLayer);
-            }
-        }
-
-        function updateTextLayer() {
-            textLayer.innerText = document.getElementById('text-value').value || "Seu Texto Aqui";
-        }
-
-        function playToggle() {
-            if
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
