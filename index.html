@@ -9,27 +9,29 @@
         :root { --accent: #00e5ff; --bg: #0b0c0f; --card: #14161d; --border: #222530; }
         body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
         .app { width: 100%; max-width: 430px; display: flex; flex-direction: column; gap: 12px; }
-        
         .box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
         .preview-box { background: #000; border-radius: 12px; height: 240px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; border: 1px solid var(--border); }
         video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; transition: transform 0.2s ease; }
-        
         .file-label { background: var(--accent); color: #000; font-weight: bold; padding: 12px; border-radius: 25px; text-align: center; cursor: pointer; display: block; font-size: 14px; }
         button { background: #1f222b; border: 1px solid #2d313e; color: #fff; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
         button:hover { background: #252936; }
         button.active { background: var(--accent); color: #000; border-color: var(--accent); }
         .btn-main { background: var(--accent); color: #000; font-size: 13px; padding: 12px; border-radius: 8px; font-weight: bold; }
-        
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
         .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .control-group { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
         .control-group label { font-size: 11px; color: #aaa; text-transform: uppercase; font-weight: bold; }
         input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0; }
-        
         .parts-container { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; max-height: 140px; overflow-y: auto; }
         .part-item { background: #1f222b; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border: 1px solid #2d313e; }
         .part-item.disabled { opacity: 0.4; text-decoration: line-through; }
         .part-item button { width: auto; background: #ff3b30; border: none; padding: 4px 8px; font-size: 11px; }
+
+        /* Estilo do Alerta Personalizado */
+        #custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 20px; width: 80%; max-width: 300px; text-align: center; }
+        .modal-title { color: var(--accent); font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+        .modal-text { font-size: 13px; color: #ccc; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -99,22 +101,18 @@
 
         <div class="box">
             <span style="font-size: 12px; font-weight: bold; color: var(--accent);"><i class="fa-solid fa-sliders"></i> AJUSTE FINO</span>
-            
             <div class="control-group">
                 <label>Brilho</label>
                 <input type="range" id="b-slider" min="50" max="150" value="100" oninput="Studio.applyAllFilters()">
             </div>
-
             <div class="control-group">
                 <label>Contraste</label>
                 <input type="range" id="c-slider" min="50" max="200" value="100" oninput="Studio.applyAllFilters()">
             </div>
-
             <div class="control-group">
                 <label>Saturação</label>
                 <input type="range" id="s-slider" min="0" max="200" value="100" oninput="Studio.applyAllFilters()">
             </div>
-
             <div class="control-group">
                 <label>Desfoque (Blur)</label>
                 <input type="range" id="bl-slider" min="0" max="10" value="0" step="0.5" oninput="Studio.applyAllFilters()">
@@ -124,6 +122,14 @@
         <button id="export-btn" class="btn-main" onclick="Studio.exportEditedVideo()">
             <i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO
         </button>
+    </div>
+
+    <div id="custom-modal">
+        <div class="modal-box">
+            <div class="modal-title">MiniCut Studio</div>
+            <div class="modal-text" id="modal-msg"></div>
+            <button class="btn-main" onclick="Studio.closeModal()">OK</button>
+        </div>
     </div>
 
     <canvas id="render-canvas" style="display:none;"></canvas>
@@ -138,31 +144,43 @@
             rotation: 0,
             flipped: false,
             segments: [],
+            currentObjectUrl: null,
+            exportInterval: null,
+
+            showModal(msg) {
+                document.getElementById('modal-msg').innerText = msg;
+                document.getElementById('custom-modal').style.display = 'flex';
+            },
+
+            closeModal() {
+                document.getElementById('custom-modal').style.display = 'none';
+            },
 
             init() {
                 document.getElementById('video-file').addEventListener('change', (e) => {
                     const file = e.target.files[0];
-                    if (file) {
-                        this.video.src = URL.createObjectURL(file);
-                        this.video.load();
-                        
-                        this.video.onloadedmetadata = () => {
-                            this.segments = [{ start: 0, end: this.video.duration, deleted: false }];
-                            this.renderSegmentsList();
-                        };
-                    }
+                    if (!file) return;
+                    if (this.currentObjectUrl) URL.revokeObjectURL(this.currentObjectUrl);
+                    this.currentObjectUrl = URL.createObjectURL(file);
+                    this.video.src = this.currentObjectUrl;
+                    this.video.load();
+                    this.video.onloadedmetadata = () => {
+                        this.segments = [{ start: 0, end: this.video.duration, deleted: false }];
+                        this.renderSegmentsList();
+                    };
                 });
 
                 this.video.ontimeupdate = () => {
-                    const current = this.video.currentTime;
-                    const segmentInTime = this.segments.find(seg => current >= seg.start && current < seg.end);
-                    
-                    if (segmentInTime && segmentInTime.deleted) {
-                        const nextValid = this.segments.find(seg => seg.start >= segmentInTime.end && !seg.deleted);
-                        if (nextValid) {
-                            this.video.currentTime = nextValid.start;
-                        } else {
-                            this.video.currentTime = this.segments[0].start;
+                    if (!this.segments.length || this.video.paused) return;
+                    const cur = this.video.currentTime;
+                    const activeSeg = this.segments.find(s => cur >= s.start && cur < s.end);
+                    if (activeSeg && activeSeg.deleted) {
+                        const next = this.segments.find(s => s.start >= activeSeg.end && !s.deleted);
+                        if (next) this.video.currentTime = next.start;
+                        else {
+                            const first = this.segments.find(s => !s.deleted);
+                            if (first) this.video.currentTime = first.start;
+                            else this.video.pause();
                         }
                     }
                 };
@@ -180,30 +198,22 @@
             },
 
             updateTransform() {
-                const scaleX = this.flipped ? -1 : 1;
-                this.video.style.transform = `rotate(${this.rotation}deg) scaleX(${scaleX})`;
+                this.video.style.transform = `rotate(${this.rotation}deg) scaleX(${this.flipped ? -1 : 1})`;
             },
 
             updateVolume() {
-                const vol = document.getElementById('vol-slider').value;
-                this.video.volume = vol / 100;
+                this.video.volume = document.getElementById('vol-slider').value / 100;
             },
 
             splitVideo() {
-                if (!this.video.src || this.video.duration === 0) return;
-                const cutPoint = this.video.currentTime;
-
+                if (!this.video.src || !this.video.duration) return this.showModal("Carregue um vídeo primeiro!");
+                const cut = this.video.currentTime;
                 for (let i = 0; i < this.segments.length; i++) {
                     let seg = this.segments[i];
-                    if (cutPoint > seg.start && cutPoint < seg.end) {
+                    if (cut > seg.start && cut < seg.end) {
                         const oldEnd = seg.end;
-                        seg.end = cutPoint;
-                        
-                        this.segments.splice(i + 1, 0, {
-                            start: cutPoint,
-                            end: oldEnd,
-                            deleted: false
-                        });
+                        seg.end = cut;
+                        this.segments.splice(i + 1, 0, { start: cut, end: oldEnd, deleted: false });
                         break;
                     }
                 }
@@ -211,50 +221,44 @@
             },
 
             toggleSegment(index) {
-                this.segments[index].deleted = !this.segments[index].deleted;
-                this.renderSegmentsList();
+                if (this.segments[index]) {
+                    this.segments[index].deleted = !this.segments[index].deleted;
+                    this.renderSegmentsList();
+                }
             },
 
             renderSegmentsList() {
-                const listContainer = document.getElementById('parts-list');
-                listContainer.innerHTML = '';
-
+                const list = document.getElementById('parts-list');
+                list.innerHTML = '';
                 this.segments.forEach((seg, i) => {
                     const item = document.createElement('div');
                     item.className = `part-item ${seg.deleted ? 'disabled' : ''}`;
-                    
-                    const duration = (seg.end - seg.start).toFixed(1);
                     item.innerHTML = `
-                        <span>Pedaço ${i+1} (${duration}s)</span>
-                        <button style="width:auto; background:${seg.deleted ? '#34c759':'#ff3b30'}; border:none;" onclick="Studio.toggleSegment(${i})">
-                            ${seg.deleted ? 'Restaurar' : 'Excluir'}
-                        </button>
+                        <span>Pedaço ${i+1} (${Math.max(0, seg.end - seg.start).toFixed(1)}s)</span>
+                        <button onclick="Studio.toggleSegment(${i})">${seg.deleted ? 'Restaurar' : 'Excluir'}</button>
                     `;
-                    listContainer.appendChild(item);
+                    list.appendChild(item);
                 });
             },
 
             changeAspect(mode) {
                 this.aspectMode = mode;
                 this.video.style.objectFit = mode;
-                ['contain', 'cover', 'fill'].forEach(m => document.getElementById(`fit-${m}`).classList.remove('active'));
-                document.getElementById(`fit-${mode}`).classList.add('active');
+                ['contain', 'cover', 'fill'].forEach(m => document.getElementById(`fit-${m}`)?.classList.remove('active'));
+                document.getElementById(`fit-${mode}`)?.classList.add('active');
             },
 
             changeSpeed(rate) {
                 this.playbackRate = rate;
                 this.video.playbackRate = rate;
-                ['05', '10', '15'].forEach(id => document.getElementById(`sp-${id}`).classList.remove('active'));
-                document.getElementById(`sp-${rate.toString().replace('.', '')}`).classList.add('active');
+                ['05', '10', '15'].forEach(id => document.getElementById(`sp-${id}`)?.classList.remove('active'));
+                document.getElementById(`sp-${rate.toString().replace('.', '')}`)?.classList.add('active');
             },
 
             togglePreset(type) {
-                if (this.activePreset === type) this.activePreset = 'none';
-                else this.activePreset = type;
-                
-                ['f-pb', 'f-sepia', 'f-invert'].forEach(f => document.getElementById(f).classList.remove('active'));
-                if (this.activePreset !== 'none') document.getElementById(`f-${type}`).classList.add('active');
-                
+                this.activePreset = (this.activePreset === type) ? 'none' : type;
+                ['f-pb', 'f-sepia', 'f-invert'].forEach(f => document.getElementById(f)?.classList.remove('active'));
+                if (this.activePreset !== 'none') document.getElementById(`f-${type}`)?.classList.add('active');
                 this.applyAllFilters();
             },
 
@@ -263,30 +267,37 @@
                 const c = document.getElementById('c-slider').value;
                 const s = document.getElementById('s-slider').value;
                 const bl = document.getElementById('bl-slider').value;
-                
-                let filterStr = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${bl}px)`;
-                if (this.activePreset === 'pb') filterStr += ' grayscale(100%)';
-                if (this.activePreset === 'sepia') filterStr += ' sepia(100%)';
-                if (this.activePreset === 'invert') filterStr += ' invert(100%)';
-                
-                this.video.style.filter = filterStr;
+                let f = `brightness(${b}%) contrast(${c}%) saturate(${s}%) blur(${bl}px)`;
+                if (this.activePreset === 'pb') f += ' grayscale(100%)';
+                if (this.activePreset === 'sepia') f += ' sepia(100%)';
+                if (this.activePreset === 'invert') f += ' invert(100%)';
+                this.video.style.filter = f;
             },
 
             exportEditedVideo() {
-                if (!this.video.src) return alert("Carregue um vídeo primeiro!");
-                
-                const validSegments = this.segments.filter(s => !s.deleted);
-                if (validSegments.length === 0) return alert("Você excluiu todas as partes!");
-
                 const btn = document.getElementById('export-btn');
+                const reset = () => {
+                    btn.innerHTML = '<i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO';
+                    btn.disabled = false;
+                    if (this.exportInterval) {
+                        clearInterval(this.exportInterval);
+                        this.exportInterval = null;
+                    }
+                };
+
+                if (!this.video.src) return this.showModal("Carregue um vídeo primeiro!");
+                const validSegs = this.segments.filter(s => !s.deleted);
+                if (!validSegs.length) return this.showModal("Todas as partes foram excluídas!");
+
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> PROCESSANDO...';
                 btn.disabled = true;
 
                 this.video.pause();
                 const ctx = this.canvas.getContext('2d');
-                
-                let renderW = Math.min(this.video.videoWidth || 640, 854);
-                let renderH = Math.min(this.video.videoHeight || 360, 480);
+                let srcW = this.video.videoWidth || 640;
+                let srcH = this.video.videoHeight || 360;
+                let renderW = Math.min(srcW, 640);
+                let renderH = Math.round(renderW * (srcH / srcW));
 
                 if (this.rotation === 90 || this.rotation === 270) {
                     this.canvas.width = renderH;
@@ -296,46 +307,59 @@
                     this.canvas.height = renderH;
                 }
 
-                const canvasStream = this.canvas.captureStream(30);
-                const finalStream = new MediaStream();
-                canvasStream.getVideoTracks().forEach(t => finalStream.addTrack(t));
+                const stream = this.canvas.captureStream(25);
+                try {
+                    const vStream = this.video.captureStream ? this.video.captureStream() : (this.video.mozCaptureStream ? this.video.mozCaptureStream() : null);
+                    if (vStream && vStream.getAudioTracks().length > 0) stream.addTrack(vStream.getAudioTracks()[0]);
+                } catch (e) {}
 
-                if (this.video.captureStream) {
-                    const audio = this.video.captureStream().getAudioTracks();
-                    if (audio.length > 0) finalStream.addTrack(audio[0]);
-                }
+                let mimeType = 'video/webm';
+                if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+                else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
 
+                const recorder = new MediaRecorder(stream, { mimeType });
                 const chunks = [];
-                const recorder = new MediaRecorder(finalStream, { mimeType: 'video/webm' });
-                recorder.ondataavailable = e => chunks.push(e.data);
+
+                recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
                 
                 recorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'minicut_editado.webm';
-                    a.click();
-                    
-                    btn.innerHTML = '<i class="fa-solid fa-download"></i> EXPORTAR VÍDEO EDITADO';
-                    btn.disabled = false;
+                    try {
+                        const blob = new Blob(chunks, { type: mimeType });
+                        const reader = new FileReader();
+                        
+                        // Converte o arquivo para DataURL (Garante suporte a downloads no WebView do Android)
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = () => {
+                            const base64data = reader.result;
+                            const a = document.createElement('a');
+                            a.href = base64data;
+                            a.download = `minicut_editado.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(() => { document.body.removeChild(a); }, 1000);
+                        };
+                    } catch (err) {
+                        this.showModal("Erro ao gerar arquivo para download.");
+                    } finally { reset(); }
                 };
 
-                let currentSeg = 0;
-                this.video.currentTime = validSegments[currentSeg].start;
-                this.video.playbackRate = this.playbackRate;
-                recorder.start();
+                recorder.onerror = () => reset();
 
-                const loop = setInterval(() => {
-                    let active = validSegments[currentSeg];
-                    if (this.video.currentTime >= active.end) {
+                let currentSeg = 0;
+                this.video.currentTime = validSegs[currentSeg].start;
+                this.video.playbackRate = this.playbackRate;
+
+                const drawFrame = () => {
+                    let active = validSegs[currentSeg];
+                    if (!active || this.video.currentTime >= active.end) {
                         currentSeg++;
-                        if (currentSeg < validSegments.length) {
-                            this.video.currentTime = validSegments[currentSeg].start;
+                        if (currentSeg < validSegs.length) {
+                            this.video.currentTime = validSegs[currentSeg].start;
+                            active = validSegs[currentSeg];
                         } else {
-                            clearInterval(loop);
-                            recorder.stop();
+                            if (recorder.state !== 'inactive') recorder.stop();
                             this.video.pause();
+                            clearInterval(this.exportInterval);
                             return;
                         }
                     }
@@ -343,7 +367,6 @@
                     ctx.save();
                     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                     ctx.filter = this.video.style.filter || 'none';
-
                     ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
                     if (this.rotation !== 0) ctx.rotate((this.rotation * Math.PI) / 180);
                     if (this.flipped) ctx.scale(-1, 1);
@@ -351,12 +374,30 @@
                     let drawW = (this.rotation === 90 || this.rotation === 270) ? this.canvas.height : this.canvas.width;
                     let drawH = (this.rotation === 90 || this.rotation === 270) ? this.canvas.width : this.canvas.height;
 
-                    ctx.drawImage(this.video, -drawW / 2, -drawH / 2, drawW, drawH);
+                    if (this.aspectMode === 'fill') {
+                        ctx.drawImage(this.video, -drawW / 2, -drawH / 2, drawW, drawH);
+                    } else if (this.aspectMode === 'cover') {
+                        const vr = srcW / srcH, cr = drawW / drawH;
+                        let sw = vr > cr ? srcH * cr : srcW, sh = vr > cr ? srcH : srcW / cr;
+                        ctx.drawImage(this.video, (srcW - sw) / 2, (srcH - sh) / 2, sw, sh, -drawW / 2, -drawH / 2, drawW, drawH);
+                    } else {
+                        const vr = srcW / srcH, cr = drawW / drawH;
+                        let dw = vr > cr ? drawW : drawH * vr, dh = vr > cr ? drawW / vr : drawH;
+                        ctx.drawImage(this.video, -dw / 2, -dh / 2, dw, dh);
+                    }
                     ctx.restore();
+                };
 
-                }, 33);
+                recorder.start();
 
-                this.video.play().catch(() => {});
+                this.video.play().then(() => {
+                    this.exportInterval = setInterval(drawFrame, 1000 / 25);
+                }).catch(() => {
+                    this.video.muted = true;
+                    this.video.play().then(() => {
+                        this.exportInterval = setInterval(drawFrame, 1000 / 25);
+                    }).catch(() => reset());
+                });
             }
         };
 
